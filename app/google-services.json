@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "135015385714",
+    "project_id": "annotably",
+    "storage_bucket": "annotably.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:135015385714:android:d1910189061ed6c55c90eb",
+        "android_client_info": {
+          "package_name": "com.amali.annotably"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA4pApS1LnSKwzLnwHNMLH79YIxtWBV1ek"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

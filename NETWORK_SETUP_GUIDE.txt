@@ -1,0 +1,92 @@
+// Retrofit, Coroutines, OkHttp, and Hilt DI Setup Guide
+//
+// This project is now configured with:
+// - Retrofit 2.11.0 for REST API calls
+// - OkHttp 4.12.0 for HTTP client with logging interceptor
+// - Kotlin Coroutines 1.9.0 for asynchronous operations
+// - Hilt (Dagger) for Dependency Injection
+//
+// Structure:
+// - AnnotablyApplication.kt - Application class with @HiltAndroidApp
+// - di/NetworkModule.kt - Provides Retrofit, OkHttp, and ApiService
+// - di/RepositoryModule.kt - Provides repository instances
+// - data/network/ApiService.kt - API endpoint definitions
+// - data/network/NetworkResult.kt - Sealed class for network responses
+// - data/repository/BaseRepository.kt - Base repository with safe API call handling
+// - data/repository/ExampleRepository.kt - Example repository with constructor injection
+// - utils/CoroutineUtils.kt - Coroutine utility functions
+//
+// Quick Start:
+// 1. Update BASE_URL in di/NetworkModule.kt
+// 2. Define your API endpoints in ApiService.kt
+// 3. Create a repository with @Inject constructor
+// 4. Create a ViewModel with @HiltViewModel and @Inject constructor
+// 5. Use hiltViewModel() in your Composable
+//
+// For detailed documentation, see DEPENDENCY_INJECTION.md
+//
+// Example API Service:
+/*
+interface ApiService {
+    @GET("users/{id}")
+    suspend fun getUser(@Path("id") userId: Int): Response<User>
+    
+    @POST("login")
+    suspend fun login(@Body credentials: LoginRequest): Response<LoginResponse>
+    
+    @GET("posts")
+    suspend fun getPosts(@Query("page") page: Int): Response<List<Post>>
+}
+*/
+//
+// Example Repository with DI:
+/*
+class UserRepository @Inject constructor(
+    private val apiService: ApiService
+) : BaseRepository() {
+    
+    suspend fun getUser(userId: Int): NetworkResult<User> {
+        return safeApiCall { apiService.getUser(userId) }
+    }
+}
+*/
+//
+// Example ViewModel with DI:
+/*
+@HiltViewModel
+class UserViewModel @Inject constructor(
+    private val userRepository: UserRepository
+) : ViewModel() {
+    
+    private val _userState = MutableStateFlow<NetworkResult<User>>(NetworkResult.Loading())
+    val userState: StateFlow<NetworkResult<User>> = _userState
+    
+    fun loadUser(userId: Int) {
+        viewModelScope.launch {
+            _userState.value = NetworkResult.Loading()
+            _userState.value = userRepository.getUser(userId)
+        }
+    }
+}
+*/
+//
+// Example Composable Usage:
+/*
+@Composable
+fun UserScreen(
+    viewModel: UserViewModel = hiltViewModel()
+) {
+    val userState by viewModel.userState.collectAsState()
+    
+    when (userState) {
+        is NetworkResult.Loading -> CircularProgressIndicator()
+        is NetworkResult.Success -> {
+            val user = (userState as NetworkResult.Success).data
+            Text("User: ${user?.name}")
+        }
+        is NetworkResult.Error -> {
+            Text("Error: ${(userState as NetworkResult.Error).message}")
+        }
+    }
+}
+*/
