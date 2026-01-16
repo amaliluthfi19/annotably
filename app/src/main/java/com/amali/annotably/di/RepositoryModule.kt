@@ -3,6 +3,7 @@ package com.amali.annotably.di
 import com.amali.annotably.data.network.ApiService
 import com.amali.annotably.data.repository.BookRepository
 import com.amali.annotably.data.repository.ExampleRepository
+import com.google.firebase.firestore.FirebaseFirestore
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -21,7 +22,10 @@ object RepositoryModule {
     
     @Provides
     @Singleton
-    fun provideBookRepository(apiService: ApiService): BookRepository {
-        return BookRepository(apiService)
+    fun provideBookRepository(
+        apiService: ApiService,
+        firestore: FirebaseFirestore
+    ): BookRepository {
+        return BookRepository(apiService, firestore)
     }
 }

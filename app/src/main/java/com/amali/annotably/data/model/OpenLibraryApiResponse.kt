@@ -17,7 +17,7 @@ import com.google.gson.annotations.SerializedName
  */
 data class OpenLibraryApiResponse(
     @SerializedName("numFound")
-    val numFound: Int,
+    val numFound: Int,  
     
     @SerializedName("start")
     val start: Int,

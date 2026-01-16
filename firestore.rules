@@ -1,0 +1,15 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Books collection - allow read and write for all users (development only)
+    // TODO: Update these rules for production to require authentication
+    match /books/{bookId} {
+      allow read, write: if true;
+    }
+    
+    // Default: deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

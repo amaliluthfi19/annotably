@@ -16,6 +16,7 @@ hilt = "2.52"
 hiltNavigationCompose = "1.2.0"
 coil = "2.7.0"
 firebase = "4.4.4"
+firebase-bom = "33.7.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -51,6 +52,10 @@ hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
 hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+
+# Firebase
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebase-bom" }
+firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore-ktx" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
