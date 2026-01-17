@@ -64,7 +64,7 @@ fun SearchTopBar(
                             if (query.isNotEmpty()) {
                                 IconButton(onClick = onClear) {
                                     Icon(
-                                            imageVector = Icons.Filled.Clear ,
+                                            imageVector = Icons.Filled.Clear,
                                             contentDescription = stringResource(R.string.clear),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
