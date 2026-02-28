@@ -2,12 +2,14 @@ package com.amali.annotably.data.repository
 
 import android.util.Log
 import com.amali.annotably.core.data.firestore.FirestoreService
+import com.amali.annotably.core.data.model.BookPage
 import com.amali.annotably.data.model.Book
 import com.amali.annotably.data.network.ApiService
 import com.amali.annotably.data.network.NetworkResult
-import javax.inject.Inject
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.Query
+import javax.inject.Inject
 
 /**
  * Repository for book-related operations using OpenLibrary API
@@ -171,8 +173,11 @@ constructor(private val apiService: ApiService, private val firestore: Firestore
     suspend fun getAllBooksFromFirestore(): NetworkResult<List<Book>> {
         Log.d("BookRepository", "Fetching all books from Firestore")
 
-        return when (val result = firestore.getByQuery("books") { query -> query.orderBy("createdAt",
-            Query.Direction.DESCENDING).limit(3)}) {
+        return when (val result =
+                        firestore.getByQuery("books") { query ->
+                            query.orderBy("createdAt", Query.Direction.DESCENDING).limit(3)
+                        }
+        ) {
             is NetworkResult.Success -> {
                 val documents = result.data ?: emptyList()
                 Log.d("BookRepository", "Retrieved ${documents.size} documents from Firestore")
@@ -215,6 +220,60 @@ constructor(private val apiService: ApiService, private val firestore: Firestore
             is NetworkResult.Loading -> {
                 NetworkResult.Loading()
             }
+        }
+    }
+
+    suspend fun getPaginatedBook(
+            lastDocument: DocumentSnapshot?,
+            limit: Int = 10
+    ): NetworkResult<BookPage> {
+        return when (val result =
+                        firestore.getPaginated(
+                                "books",
+                                lastDocument,
+                                { query -> query.orderBy("createdAt", Query.Direction.DESCENDING) },
+                                limit
+                        )
+        ) {
+            is NetworkResult.Success -> {
+                val paginatedData = result.data!!
+                Log.d("BookRepository", "Retrieved ${paginatedData.data.size} documents from Firestore")
+
+                val books =
+                        paginatedData.data.mapNotNull { document ->
+                            try {
+                                Book(
+                                        title = document["title"] as? String,
+                                        firstPublish =
+                                                (document["firstPublish"] as? Number)?.toInt(),
+                                        authorName =
+                                                (document["authorName"] as? List<*>)?.mapNotNull {
+                                                    it as? String
+                                                },
+                                        authorKey =
+                                                (document["authorKey"] as? List<*>)?.mapNotNull {
+                                                    it as? String
+                                                },
+                                        coverId = (document["coverId"] as? Number)?.toInt(),
+                                        key = document["key"] as? String
+                                )
+                            } catch (e: Exception) {
+                                Log.e(
+                                        "BookRepository",
+                                        "Error parsing book document ${document["id"]}: ${e.message}",
+                                        e
+                                )
+                                null
+                            }
+                        }
+                Log.i("BookRepository", "Successfully parsed ${books.size} books from Firestore")
+                NetworkResult.Success(BookPage(books, paginatedData.lastDocument, paginatedData.hasMore))
+            }
+            is NetworkResult.Error -> {
+                Log.e("BookRepository", "Failed to fetch books from Firestore: ${result.message}")
+                NetworkResult.Error(result.message ?: "Failed to fetch books from Firestore")
+            }
+            is NetworkResult.Loading -> NetworkResult.Loading()
         }
     }
 

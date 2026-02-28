@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.amali.annotably.data.model.Book
 import com.amali.annotably.data.network.NetworkResult
 import com.amali.annotably.data.repository.BookRepository
+import com.google.firebase.firestore.DocumentSnapshot
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +27,12 @@ class HomeViewModel @Inject constructor(
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
+    private val _isLoadingMore = MutableStateFlow(false)
+    val isLoadingMore: StateFlow<Boolean> = _isLoadingMore.asStateFlow()
+
+    private var lastDocument: DocumentSnapshot? = null
+    private var hasMore = true
+
     init {
         loadBooks()
     }
@@ -33,16 +40,16 @@ class HomeViewModel @Inject constructor(
     fun loadBooks() {
         viewModelScope.launch {
             _homeState.value = HomeUiState.Loading
+            lastDocument = null
+            hasMore = true
 
-            when (val result = bookRepository.getAllBooksFromFirestore()) {
+            when (val result = bookRepository.getPaginatedBook(null)) {
                 is NetworkResult.Success -> {
-                    val bookList = result.data ?: emptyList()
-                    _books.value = bookList
-                    _homeState.value = if (bookList.isEmpty()) {
-                        HomeUiState.Empty
-                    } else {
-                        HomeUiState.Success
-                    }
+                    val page = result.data!!
+                    lastDocument = page.lastDocument
+                    hasMore = page.hasMore
+                    _books.value = page.books
+                    _homeState.value = if (page.books.isEmpty()) HomeUiState.Empty else HomeUiState.Success
                 }
                 is NetworkResult.Error -> {
                     _homeState.value = HomeUiState.Error(result.message ?: "Unknown error")
@@ -54,26 +61,47 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun loadMoreBooks() {
+        if (!hasMore || _isLoadingMore.value) return
+
+        viewModelScope.launch {
+            _isLoadingMore.value = true
+
+            when (val result = bookRepository.getPaginatedBook(lastDocument)) {
+                is NetworkResult.Success -> {
+                    val page = result.data!!
+                    lastDocument = page.lastDocument
+                    hasMore = page.hasMore
+                    _books.value = _books.value + page.books
+                }
+                is NetworkResult.Error -> {
+                    // Keep current books, pagination will retry on next trigger
+                }
+                is NetworkResult.Loading -> {}
+            }
+
+            _isLoadingMore.value = false
+        }
+    }
+
     fun refreshBooks() {
         viewModelScope.launch {
             _isRefreshing.value = true
+            lastDocument = null
+            hasMore = true
 
-            when (val result = bookRepository.getAllBooksFromFirestore()) {
+            when (val result = bookRepository.getPaginatedBook(null)) {
                 is NetworkResult.Success -> {
-                    val bookList = result.data ?: emptyList()
-                    _books.value = bookList
-                    _homeState.value = if (bookList.isEmpty()) {
-                        HomeUiState.Empty
-                    } else {
-                        HomeUiState.Success
-                    }
+                    val page = result.data!!
+                    lastDocument = page.lastDocument
+                    hasMore = page.hasMore
+                    _books.value = page.books
+                    _homeState.value = if (page.books.isEmpty()) HomeUiState.Empty else HomeUiState.Success
                 }
                 is NetworkResult.Error -> {
-                    // Don't change state on refresh error, just keep current state
+                    // Keep current state on refresh error
                 }
-                is NetworkResult.Loading -> {
-                    // Already refreshing
-                }
+                is NetworkResult.Loading -> {}
             }
 
             _isRefreshing.value = false

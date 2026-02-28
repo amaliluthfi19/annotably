@@ -1,8 +1,10 @@
 package com.amali.annotably.core.data.firestore
 
 import android.util.Log
+import com.amali.annotably.core.data.model.PaginatedResults
 import com.amali.annotably.data.network.NetworkResult
 import com.google.firebase.firestore.DocumentReference
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import javax.inject.Inject
@@ -118,6 +120,42 @@ class FirestoreService @Inject constructor(private val firestore: FirebaseFirest
                         "Failed to fetch documents from collection $collection: ${e.message}"
                 Log.e(TAG, errorMessage, e)
                 NetworkResult.Error(errorMessage)
+            }
+        }
+    }
+
+    suspend fun getPaginated(collection: String, lasDocument: DocumentSnapshot?, queryBuilder: (Query) -> Query, limit: Int): NetworkResult<PaginatedResults> {
+        return withContext(Dispatchers.IO) {
+            try {
+                var query: Query = firestore.collection(collection)
+               queryBuilder.let { query = it(query) }
+                query = query.limit(limit.toLong())
+                lasDocument?.let { query = query.startAfter(it) }
+
+                val querySnapshot = query.get().await()
+
+                val documents = querySnapshot.documents.mapNotNull { document ->
+                    try {
+                        val data = document.data as? HashMap<String, Any> ?: hashMapOf()
+                        data["id"] = document.id
+                        data
+                    }catch (e: Exception) {
+                        Log.e(TAG, "Error parsing Document $e")
+                        null
+                    }
+                }
+
+                NetworkResult.Success(
+                    PaginatedResults(
+                        documents,
+                        querySnapshot.documents.lastOrNull(),
+                        documents.size == limit
+                    )
+                )
+
+            }catch (e: Exception) {
+                Log.e(TAG, "Error get books $e")
+                NetworkResult.Error(e.message ?: "Something went wrong")
             }
         }
     }

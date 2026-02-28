@@ -1,9 +1,10 @@
 package com.amali.annotably.core.data.model
 
+import com.amali.annotably.data.model.Book
 import com.google.firebase.firestore.DocumentSnapshot
 
-data class PaginatedResults(
-        val data: List<HashMap<String, Any>>,
+data class BookPage(
+        val books: List<Book>,
         val lastDocument: DocumentSnapshot?,
         val hasMore: Boolean
 )
